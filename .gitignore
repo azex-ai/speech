@@ -1,0 +1,21 @@
+.DS_Store
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+*.o
+*.dSYM
+*.ipa
+*.app
+*.dmg
+
+# Frameworks (downloaded via scripts/setup.sh)
+Frameworks/
+*.xcframework
+
+# ASR models (downloaded at runtime via setup.sh)
+**/models/asr/
+
+# User data
+*.local
