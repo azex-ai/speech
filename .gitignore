@@ -14,8 +14,8 @@ DerivedData/
 Frameworks/
 *.xcframework
 
-# ASR models (downloaded at runtime via setup.sh)
-**/models/asr/
+# Models (downloaded at runtime, not committed)
+models/
 
 # User data
 *.local

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "macos-design-guidelines": {
+      "source": "ehmo/platform-design-skills",
+      "sourceType": "github",
+      "computedHash": "fdbeb208feb60e5ed08226e4e1e714eade6cfe6530ad27c792992823de63ca0d"
+    },
+    "swift-expert": {
+      "source": "404kidwiz/claude-supercode-skills",
+      "sourceType": "github",
+      "computedHash": "591003d37faf95be6ef0e94aac871690b5f63ac036095afb3722c193b185c018"
+    }
+  }
+}
