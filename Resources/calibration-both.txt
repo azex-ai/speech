@@ -1,0 +1,9 @@
+我们团队最近用 Cursor 开发了一个监控 EigenLayer restaking 数据的 agentic workflow，通过 MCP 协议连接链上数据源，再用 Claude 的 function calling 能力自动分析 AVS 的风险指标。LangChain 集成了 Chainlink oracle 的数据接口，RAG 系统可以实时获取 DeFi 协议的 TVL 和利率变化。整个 inference 流程跑在 Apple Silicon 上，用 MLX 加载 quantization 版的 Llama 模型，latency 控制在百毫秒以内。Solana 上的 Jupiter 交易数据量太大，我们用 vector database 存储历史交易的 embeddings 来做相似交易检索。这种 AI 加 Crypto 的组合让链上数据分析的效率提高了好几倍。
+---
+DeepSeek 的 chain-of-thought 推理能力非常适合分析 Uniswap 的 AMM 机制和 impermanent loss 模型。我在 Hugging Face 上找到了几个专门用 DeFi 数据 fine-tuning 过的 embedding 模型，配合 LlamaIndex 构建了一个 Aave 和 Compound 借贷利率的预测系统。prompt engineering 在这个场景下特别关键，好的提示模板能让模型准确理解 yield farming 策略的风险收益特征。Arbitrum 上的 DEX 交易数据通过 AI SDK 接入分析流程，agentic workflow 会自动生成每日的 DeFi 市场报告。LoRA 微调让我们可以快速迭代模型，每周根据最新的链上数据更新一次。
+---
+Gnosis Safe 的 multisig 交易审批正在实验用 GPT-5 做智能风险检测，DAO governance 的提案摘要也开始用 LLM 自动生成。Anthropic 的 Claude 在理解 Ethereum 智能合约方面表现出色，context window 足够大可以一次性分析整个协议的代码库。MakerDAO 更名 Sky 之后推出的 USDS 稳定币需要 oracle 喂价，Chainlink 的数据配合 AI 异常检测模型可以更早发现价格操纵风险。Gemini 的 multi-modal 能力可以直接分析链上 NFT 的图像内容和元数据，这在 cross-chain 资产追踪中很有价值。validator 运营者也开始用 AI Agent 来自动化节点监控和 MEV 策略优化。
+---
+用 Windsurf 写 Solana 的 Rust 程序比以前方便多了，tool use 功能让 AI 可以直接调用 RPC 节点查询链上状态。Lido 的 stETH 在 restaking 生态中是最重要的底层资产，我们用 RAG 框架分析了所有跟 stETH 相关的 DeFi 协议风险。Mistral 的开源模型在 benchmark 上表现不错，配合 DPO 对齐训练后用来做 staking 收益预测效果很好。Qwen 在中文 Crypto 内容理解上有天然优势，处理中文研报和社区讨论的准确率明显高于其他模型。Base 和 Blast 这些新 Layer2 的 gas 数据也被纳入了我们的 vector database，transformer 模型可以捕捉到跨链 gas 价格的联动关系。
+---
+RLHF 训练需要大量人类反馈数据，在 Crypto 领域我们收集了分析师对 Optimism 和 Polygon 治理提案的评分作为训练信号。ZK rollup 的证明生成过程计算密集，有团队尝试用 AI 来优化证明电路的参数配置。bridge 安全事件的历史数据是训练风险检测模型的宝贵素材，配合 Compound 和 Aave 的清算事件数据可以构建更全面的 DeFi 风险图谱。tokenizer 对 Crypto 术语的分词准确率直接影响模型表现，Bitcoin 和 Ethereum 这些高频词还好，但像 EigenLayer 和 liquidity pool 这样的复合词经常被错误切分。我们正在用 vision model 分析 K 线图和链上活动热力图，结合 inference 结果给交易员提供实时的市场洞察。

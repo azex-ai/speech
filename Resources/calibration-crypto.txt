@@ -1,0 +1,9 @@
+Ethereum 经过 Dencun 升级之后 Layer2 的 gas 费用降低了一个数量级，Arbitrum 和 Optimism 的日活用户数已经稳定超过主网。Base 和 Blast 作为新兴的 Layer2 也在快速增长，ZK rollup 技术路线的 Polygon 则在企业客户方面建立了优势。cross-chain bridge 的安全性一直是行业关注的焦点，各种桥接方案都在探索更安全的验证机制。MEV 问题依然困扰着普通用户，好在越来越多的 DEX 开始内置 MEV 保护功能。Chainlink 的 oracle 网络在这一切的底层提供着可靠的价格数据支撑。
+---
+Solana 生态的爆发式增长让人瞩目，Jupiter 已经成为链上最大的 DEX 聚合器，TVL 持续创新高。跟 Ethereum 上 Uniswap 的 AMM 机制不同，Jupiter 聚合了多个流动性来源，用户总能拿到最优价格。liquidity pool 的 impermanent loss 仍然是流动性提供者面临的主要风险，但新一代的集中流动性方案在一定程度上缓解了这个问题。yield farming 的策略也在进化，从简单的双币质押发展到了复杂的多层嵌套结构。Solana 的高吞吐量和低 gas 让很多原本在 Ethereum 上不经济的 DeFi 策略变得可行。
+---
+EigenLayer 的 restaking 模式开创了一个全新的赛道，让已经质押的 ETH 可以同时为多个 AVS 提供安全保障。validator 不再只是为 Ethereum 共识服务，还可以通过 restaking 获得额外的收益来源。Lido 的 stETH 是目前最主要的 restaking 底层资产，在各大 DeFi 协议中被广泛接受为抵押品。staking 生态的繁荣也带来了新的风险维度，多层杠杆叠加的系统性风险需要认真评估。整个 restaking 赛道的 TVL 增速非常快，已经成为 DeFi 领域最受关注的叙事之一。
+---
+MakerDAO 更名为 Sky 并推出了新的稳定币 USDS，标志着这个老牌 DeFi 协议的重大战略转型。Aave 和 Compound 作为借贷市场的双巨头，TVL 合计仍然遥遥领先，两个协议都在积极拓展多链部署。DAO governance 的实践越来越成熟，从 token 投票逐渐演进到代表制和委员会制。Gnosis Safe 作为最主流的 multisig 钱包管理着数百亿美元的链上资产，几乎所有大型 DAO 都在使用。governance 提案的讨论和投票流程正在变得更加规范化，多签审批也在向更精细的权限控制方向发展。
+---
+Bitcoin 的 Layer2 生态正在快速发展，NFT 和 DeFi 的玩法开始向 Bitcoin 网络迁移。Polygon 的 ZK rollup 方案在跨链互操作方面有独特优势，可以实现不同 Layer2 之间的高效资产转移。DEX 的 AMM 模型持续创新，Uniswap V4 的 hook 机制让 liquidity pool 的可编程性大幅提升。cross-chain bridge 的用户体验也在改善，但安全事件频发让大家对桥接资金保持谨慎。validator 在整个生态中扮演的角色越来越重要，从共识验证到 oracle 数据提供再到 MEV 保护，多重职责让节点运营变得更加复杂。

@@ -1,0 +1,9 @@
+最近 Anthropic 的 Claude 和 OpenAI 的 GPT-5 在各种 benchmark 上竞争非常激烈，两家在 multi-modal 和 vision model 方面都投入了大量资源。DeepSeek 作为国内的黑马选手，推理能力已经接近一线水平，尤其是 chain-of-thought 的表现让人印象深刻。Gemini 和 Mistral 也在快速迭代，transformer 架构的潜力还远没有被挖掘完。现在做 prompt engineering 不光要考虑单轮对话，还要为 agentic workflow 设计多步骤的 function calling 和 tool use 策略。context window 越来越大之后，怎么高效利用 tokenizer 分词也成了一个重要课题。
+---
+Cursor 和 Windsurf 这两个 AI IDE 彻底改变了开发者的工作方式，内置的 Claude 和 GPT 模型让写代码像跟同事对话一样自然。MCP 协议的出现让编辑器可以安全地连接外部工具和数据源，AI SDK 提供了统一的接口来调用不同厂商的模型。我们团队现在用 Cursor 配合 agentic workflow 做代码审查，function calling 能力让 AI 直接读取项目文件并给出修改建议。Windsurf 在 multi-modal 方面做得也不错，可以直接分析截图然后生成对应的前端代码。这种工作方式让 inference 的 latency 变得更加关键，毫秒级的响应差距直接影响开发体验。
+---
+LangChain 和 LlamaIndex 是当前构建 RAG 应用的两大框架，各有侧重但都在快速演进。核心思路是用 embeddings 把文档向量化存入 vector database，检索时根据语义相似度找到最相关的内容再喂给 LLM 生成回答。Hugging Face 上开源了大量高质量的 embedding 模型，配合 Qwen 或者 Llama 这类开源模型可以搭建完全私有化部署的知识库系统。我最近在测试用 chain-of-thought 提示来改善 RAG 的检索质量，让模型先分析问题再决定检索策略，效果比直接查询好很多。prompt engineering 在这个场景下特别重要，好的提示模板能显著提升最终输出的准确率。
+---
+MLX 是 Apple 专门为 Apple Silicon 设计的机器学习框架，在 M4 芯片上跑 inference 的速度和能效比都非常出色。用 MLX 加载 Llama 或者 Qwen 的 quantization 版本，latency 可以控制在毫秒级别，完全满足实时对话的需求。LoRA 让 fine-tuning 的门槛大幅降低，普通开发者在一台 MacBook 上就能训练自己的专属模型。DPO 正在逐步取代 RLHF 成为对齐训练的主流方法，因为它不需要额外训练奖励模型，流程简单很多。Mistral 和 DeepSeek 的开源模型都支持 LoRA 微调，社区已经有很多针对特定场景的适配方案。
+---
+agentic workflow 正在从实验阶段走向真正的生产环境，function calling 和 tool use 是实现 AI Agent 的两项基础能力。Anthropic 的 Claude 在指令跟随和长 context window 理解方面一直保持领先，很适合做复杂的多步骤任务编排。Google 的 Gemini 在 multi-modal 理解方面进步明显，vision model 可以直接处理图表和文档。现在各家都在卷 benchmark 分数，但实际应用中 inference 的稳定性和 latency 同样重要。MCP 协议和 AI SDK 的普及正在让不同模型之间的切换成本越来越低，开发者可以根据任务特点灵活选择最合适的模型。
