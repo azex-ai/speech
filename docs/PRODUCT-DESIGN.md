@@ -389,38 +389,54 @@ Mac App → speech.azex.ai API (账户、配置、余额)
 
 **代码位置**: `/Users/aaron/azex/speech/`
 
-### Phase 1: 核心可用 (Week 1-2)
+### Phase 1: 核心可用 ✅ 已完成 (2026-03-21)
 
-- [ ] 集成 sherpa-onnx Paraformer-zh (XCFramework)
-  - int8 量化模型 (~217MB)，首次启动下载
-  - Swift 绑定: XCFramework + Bridging Header + SherpaOnnx.swift
-  - 注意: 输入需 [-32768, 32767] 范围，非归一化 float
-  - Apple Silicon RTF ~0.15 (10s 音频 → ~1.5s 识别)
-- [ ] ASR 管线打通: 录音 → Paraformer → 文本
-- [ ] 词库后处理替换接入 ASR 输出
-- [ ] 浮窗编辑→学习闭环: 用户改词 → diff → 写入 my-vocab.json
-- [ ] pbcopy + CGEvent Cmd+V 粘贴到目标窗口
-- [ ] 渐进式模型下载管理器 + 进度 UI
+- [x] 集成 sherpa-onnx Paraformer-zh (XCFramework)
+  - int8 量化模型 (~217MB)，setup.sh 一键下载
+  - C module + SherpaOnnx.swift 封装，SPM 编译通过
+  - 输入: Float32 [-1, 1] 归一化，16kHz mono
+  - Apple Silicon RTF ~0.15
+- [x] ASR 管线打通: 录音 → Paraformer → 文本
+- [x] 词库后处理替换接入 ASR 输出 + 自动句末标点
+- [x] 浮窗编辑→学习闭环: 用户改词 → diff → 写入 my-vocab.json
+- [x] pbcopy + CGEvent Cmd+V 粘贴到目标窗口
+- [x] 渐进式模型下载管理器 + 进度 UI (URLSessionDownloadTask)
 
-### Phase 2: Onboarding + 体验 (Week 3-4)
+### Phase 2: UI + Onboarding + 体验 ✅ 已完成 (2026-03-21)
 
-- [ ] 首次校准流程 UI (领域选择 → 朗读 → 报告 → 生成个人词库)
-- [ ] 应用感知 (L2): 检测当前 App → 调整词库权重
-- [ ] AX API 上下文提取 (L1): 读活跃窗口专有名词
-  - 参考: SelectedTextKit / AXUIElement (voice-input)
-- [ ] 设置页完善: 词库查看/编辑/删除
-- [ ] Menu Bar 状态指示 (录音中/空闲)
-- [ ] 校准文本定期更新 (含最新 Crypto+AI 热词)
+- [x] App Shell: Menu bar popover + 侧边栏导航 (NavigationSplitView)
+- [x] 4 步 Onboarding 引导 (欢迎 → 快捷键 → 领域 → 校准)
+  - 键盘示意图 + 右 Option 键高亮脉冲动画
+  - 领域选择: AI / Crypto / Both
+- [x] Dashboard: 4 个统计卡片 (累计字数、节省时间、已学词汇、今日会话)
+  - 节省时间 = 打字时间 - 实际录音时间（真实计算）
+  - 最近会话列表内嵌 (可复制、删除、清除确认)
+- [x] History: 会话记录按天分组，原始→纠正 diff 对比，学习词对标签
+- [x] Vocabulary: 三 tab (Personal/Crypto/AI)，行内编辑、增删、搜索
+- [x] Feed: 语料捕获 (AX API 读取活跃窗口文本 → 提取热词)
+- [x] Calibration: Flashcard 式校准卡片浏览器
+  - 每领域 5 段校准文本，朗读 → ASR → Diff → 自动生成纠正规则
+  - 已校准/未校准状态追踪，可重新朗读
+- [x] Settings: 快捷键、输入模式、音效、领域、模型状态、数据管理
+- [x] 录音状态指示器: 紧凑胶囊 HUD (录音中/识别中/已粘贴)
+  - 多屏自动跟随鼠标位置
+- [x] 右 Option 键作为默认快捷键 (CGEvent 监听)
+- [x] 自动粘贴模式 / 编辑确认模式 (Settings 切换)
+- [x] 录音开始/结束音效 (Tink/Hero, 可关闭)
+- [x] 废土暖色主题 (AzexTheme: 琥珀橙 #E8853D + 深色)
+- [x] GitHub 开源发布: azex-ai/speech, v0.0.1
 
-### Phase 3: 智能纠正 (Week 5-6)
+### Phase 3: 智能纠正 (计划中)
 
 - [ ] 集成 MLX 本地小模型 (Qwen2.5-0.5B 量化, ~200MB)
-  - 渐进式下载（Phase 1 用规则替换先可用）
+  - 渐进式下载
   - Mac M 系列 < 500ms 推理
 - [ ] 小模型纠正管线: ASR 文本 + 词库 + 上下文 → prompt → 纠正
+- [ ] 中间标点自动插入 (逗号、顿号，基于小模型)
 - [ ] 领域词库云端刷新 (手动触发, 从 speech.azex.ai 拉 JSON)
+- [ ] 应用感知 (L2): 检测当前 App → 调整词库权重
 
-### Phase 4: Azex 集成 (Week 7-8)
+### Phase 4: Azex 集成 (计划中)
 
 - [ ] Azex 账户登录 (speech.azex.ai)
 - [ ] 远程 LLM 配置 (Claude/GPT/Gemini/DeepSeek)
