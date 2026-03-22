@@ -6,6 +6,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case vocabulary = "Vocabulary"
     case feed = "Feed"
     case calibration = "Calibration"
+    case training = "Training"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -17,6 +18,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .vocabulary: return "book"
         case .feed: return "text.badge.plus"
         case .calibration: return "waveform.badge.mic"
+        case .training: return "mouth"
         case .settings: return "gear"
         }
     }

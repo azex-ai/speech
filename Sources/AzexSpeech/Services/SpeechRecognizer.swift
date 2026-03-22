@@ -20,7 +20,7 @@ final class SpeechRecognizer: @unchecked Sendable {
 
         let modelConfig = sherpaOnnxOfflineModelConfig(
             tokens: tokensPath,
-            numThreads: 4,
+            numThreads: 8,
             provider: "cpu",
             modelType: "fire_red_asr_ctc",
             fireRedAsrCtc: fireRedCtcConfig
