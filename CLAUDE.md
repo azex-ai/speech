@@ -60,18 +60,29 @@ swift run AzexSpeech
 open Package.swift
 ```
 
-## TODO (Priority Order)
+## Completed
 
-1. [ ] Integrate sherpa-onnx Paraformer-zh as SPM dependency or XCFramework
-2. [ ] Implement ASR pipeline (audio → Paraformer → text)
-3. [ ] Wire correction engine into ASR output
-4. [ ] Implement floating panel edit → learn cycle
-5. [ ] Build onboarding calibration flow
-6. [ ] Add AX API context word extraction
-7. [ ] Model download manager (progressive install)
-8. [ ] Integrate MLX small model for Phase 2 correction
-9. [ ] Cloud vocab refresh from speech.azex.ai
-10. [ ] Azex payment gateway integration for LLM features
+- [x] ASR pipeline (FireRedASR v2 CTC, bundled in app, 8 threads)
+- [x] Correction engine (3325+ domain terms, rule-based replacement)
+- [x] Floating panel edit → learn cycle
+- [x] Onboarding calibration flow (flashcard browser)
+- [x] Pronunciation training module (history-based, lazy-loaded)
+- [x] Model bundled in app (zero download, drag-to-Applications)
+- [x] Hotwords engine-level boosting (232 terms)
+- [x] DMG packaging (v0.2.0)
+
+## TODO — Next Phase: Cloud Service (speech.azex.ai)
+
+1. [ ] Build speech.azex.ai backend API (Cloud Run + Firestore)
+2. [ ] Cloud ASR endpoint (Deepgram Nova-3 for Lite version)
+3. [ ] Cloud LLM correction endpoint (GPT-4o-mini)
+4. [ ] User auth + Azex account system
+5. [ ] Lite client (~10MB, cloud-driven, zero model download)
+6. [ ] Settings UI: "智能纠正" toggle + account login
+7. [ ] Streaming correction UX (rules first → LLM upgrade)
+8. [ ] Payment integration (Stripe + Azex crypto gateway)
+9. [ ] Cloud vocab refresh (pull latest terms from API)
+10. [ ] AX API context word extraction (send context to cloud)
 
 ## Open Source References
 
