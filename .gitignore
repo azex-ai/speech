@@ -14,8 +14,8 @@ DerivedData/
 Frameworks/
 *.xcframework
 
-# Models (downloaded at runtime, not committed)
-models/
+# Models (bundled at build time, too large for git)
+Resources/models/
 
 # User data
 *.local

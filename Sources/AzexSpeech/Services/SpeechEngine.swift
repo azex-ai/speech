@@ -2,7 +2,7 @@
 import Foundation
 
 /// Core speech recognition engine.
-/// Captures audio → recognizes via Paraformer-zh → corrects with vocab → returns text.
+/// Captures audio → recognizes via FireRedASR v2 CTC → corrects with vocab → returns text.
 final class SpeechEngine: @unchecked Sendable {
     private var audioEngine: AVAudioEngine?
     private var audioBuffer: RingBuffer<Float>
@@ -29,12 +29,13 @@ final class SpeechEngine: @unchecked Sendable {
         // Initialize ASR recognizer if model is available
         let modelPath = await ModelManager.shared.modelPath
         let tokensPath = await ModelManager.shared.tokensPath
+        let hotwordsPath = Bundle.main.url(forResource: "hotwords", withExtension: "txt")?.path
         if let modelPath, let tokensPath {
-            recognizer = SpeechRecognizer(modelPath: modelPath, tokensPath: tokensPath)
+            recognizer = SpeechRecognizer(modelPath: modelPath, tokensPath: tokensPath, hotwordsPath: hotwordsPath)
             if recognizer != nil {
-                print("✅ Paraformer-zh recognizer ready")
+                print("✅ FireRedASR v2 CTC recognizer ready")
             } else {
-                print("⚠️ Failed to initialize Paraformer-zh recognizer")
+                print("⚠️ Failed to initialize FireRedASR v2 CTC recognizer")
             }
         } else {
             print("⚠️ ASR model not downloaded yet")
@@ -97,7 +98,7 @@ final class SpeechEngine: @unchecked Sendable {
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Target: 16kHz mono Float32 for Paraformer
+        // Target: 16kHz mono Float32 for FireRedASR
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: 16000,

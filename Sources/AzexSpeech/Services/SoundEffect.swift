@@ -12,6 +12,6 @@ enum SoundEffect {
     /// Play the recording-stop sound (soft, gentle)
     static func playStop() {
         guard AppSettings.soundEnabled else { return }
-        NSSound(named: "Hero")?.play()
+        NSSound(named: "Pop")?.play()
     }
 }

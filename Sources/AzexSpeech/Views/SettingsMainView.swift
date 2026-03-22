@@ -78,7 +78,7 @@ struct SettingsMainView: View {
                         Circle()
                             .fill(modelReady ? AzexTheme.success : AzexTheme.error)
                             .frame(width: 8, height: 8)
-                        Text("Paraformer-zh")
+                        Text("FireRedASR v2 CTC")
                             .foregroundStyle(AzexTheme.textPrimary)
                         Spacer()
                         Text(modelReady ? "就绪" : "未下载")
@@ -217,7 +217,7 @@ struct SettingsMainView: View {
     // MARK: - Model status
 
     private func checkModelStatus() {
-        let base = appSupportPath.appendingPathComponent("models/asr/sherpa-onnx-paraformer-zh-2024-03-09")
+        let base = appSupportPath.appendingPathComponent("models/asr/sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25")
         let modelFile = base.appendingPathComponent("model.int8.onnx")
         let fm = FileManager.default
 

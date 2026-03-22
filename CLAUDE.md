@@ -13,7 +13,7 @@ Mac native voice input tool for Crypto + AI professionals. Menu bar app with glo
 - **Language**: Swift 6 + SwiftUI
 - **Platform**: macOS 14+ (Sonoma), Apple Silicon primary
 - **Package Manager**: Swift Package Manager
-- **ASR Engine**: sherpa-onnx Paraformer-zh (to be integrated)
+- **ASR Engine**: sherpa-onnx FireRedASR v2 CTC (Chinese-English bilingual SOTA)
 - **Correction**: Local small LLM via MLX (Phase 2), rule-based replacement (Phase 1)
 - **Audio**: AVAudioEngine, 16kHz mono Float32
 - **Hotkeys**: KeyboardShortcuts (Sindre Sorhus)
@@ -33,8 +33,8 @@ Sources/AzexSpeech/
 
 1. **No database** — all data is JSON files in ~/Library/Application Support/AzexSpeech/
 2. **No server dependency for core features** — everything runs locally
-3. **Paraformer-zh for ASR** — best Chinese accuracy, sherpa-onnx Swift bindings
-4. **SeACo hotwords don't work with Paraformer** — use post-processing replacement instead
+3. **FireRedASR v2 CTC for ASR** — Chinese-English bilingual SOTA, best code-switching accuracy
+4. **Hotwords boosting** — hotwords.txt fed to sherpa-onnx for domain term boosting + post-processing replacement
 5. **Progressive model download** — thin app install, models downloaded on first launch
 6. **Editable floating panel** — user edits = training signal for personal vocab
 

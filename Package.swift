@@ -46,6 +46,9 @@ let package = Package(
                 .copy("../../Resources/calibration-ai.txt"),
                 .copy("../../Resources/calibration-crypto.txt"),
                 .copy("../../Resources/calibration-both.txt"),
+                .copy("../../Resources/hotwords.txt"),
+                .copy("../../Resources/models/model.int8.onnx"),
+                .copy("../../Resources/models/tokens.txt"),
             ],
             linkerSettings: [
                 .unsafeFlags([

@@ -144,15 +144,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Model Download Window
+    // MARK: - Model Missing Window
 
     private func showModelDownloadWindow() {
-        let manager = ModelManager.shared
-        let view = ModelDownloadView(manager: manager)
+        let view = ModelMissingView()
         let hostingView = NSHostingView(rootView: view)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 368, height: 240),
+            contentRect: NSRect(x: 0, y: 0, width: 368, height: 200),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -166,19 +165,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         modelDownloadWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-
-        Task { @MainActor in
-            await manager.downloadModelIfNeeded()
-            if manager.isModelReady {
-                closeModelDownloadWindow()
-                initializeEngine()
-            }
-        }
-    }
-
-    private func closeModelDownloadWindow() {
-        modelDownloadWindow?.close()
-        modelDownloadWindow = nil
     }
 
     // MARK: - Recording

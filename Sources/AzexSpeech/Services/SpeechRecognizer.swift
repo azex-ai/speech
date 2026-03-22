@@ -1,13 +1,13 @@
 import Foundation
 
-/// Wraps sherpa-onnx offline Paraformer-zh recognizer.
+/// Wraps sherpa-onnx offline FireRedASR v2 CTC recognizer (Chinese-English bilingual SOTA).
 /// Thread-safe: all methods are nonisolated and can be called from any thread.
 final class SpeechRecognizer: @unchecked Sendable {
     private let recognizer: SherpaOnnxOfflineRecognizer
     let isReady: Bool
 
     /// Initialize with model file paths. Returns nil if model loading fails.
-    init?(modelPath: String, tokensPath: String) {
+    init?(modelPath: String, tokensPath: String, hotwordsPath: String? = nil) {
         let fm = FileManager.default
         guard fm.fileExists(atPath: modelPath),
               fm.fileExists(atPath: tokensPath) else {
@@ -16,20 +16,31 @@ final class SpeechRecognizer: @unchecked Sendable {
 
         let featConfig = sherpaOnnxFeatureConfig(sampleRate: 16000, featureDim: 80)
 
-        let paraformerConfig = sherpaOnnxOfflineParaformerModelConfig(model: modelPath)
+        let fireRedCtcConfig = sherpaOnnxOfflineFireRedAsrCtcModelConfig(model: modelPath)
 
         let modelConfig = sherpaOnnxOfflineModelConfig(
             tokens: tokensPath,
-            paraformer: paraformerConfig,
             numThreads: 4,
             provider: "cpu",
-            modelType: "paraformer"
+            modelType: "fire_red_asr_ctc",
+            fireRedAsrCtc: fireRedCtcConfig
         )
+
+        // Resolve hotwords file path
+        let resolvedHotwords: String
+        if let hp = hotwordsPath, fm.fileExists(atPath: hp) {
+            resolvedHotwords = hp
+            print("📋 Hotwords loaded: \(hp)")
+        } else {
+            resolvedHotwords = ""
+        }
 
         var config = sherpaOnnxOfflineRecognizerConfig(
             featConfig: featConfig,
             modelConfig: modelConfig,
-            decodingMethod: "greedy_search"
+            decodingMethod: "greedy_search",
+            hotwordsFile: resolvedHotwords,
+            hotwordsScore: 2.0
         )
 
         // SherpaOnnxOfflineRecognizer fatalErrors on failure — check file validity first.

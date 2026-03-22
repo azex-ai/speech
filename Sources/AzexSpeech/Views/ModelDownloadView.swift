@@ -1,50 +1,20 @@
 import SwiftUI
 
-/// Shows download progress for the Paraformer-zh ASR model on first launch.
-struct ModelDownloadView: View {
-    @ObservedObject var manager: ModelManager
-
+/// Shown only if the bundled ASR model is missing (should not happen in production builds).
+struct ModelMissingView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "arrow.down.circle")
+            Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 40))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.orange)
 
-            Text("Downloading Speech Model")
+            Text("语音模型缺失")
                 .font(.headline)
 
-            Text("Paraformer-zh (~217 MB)")
+            Text("请重新安装 Azex Speech 以恢复语音识别功能。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-
-            if manager.isDownloading {
-                ProgressView(value: manager.downloadProgress)
-                    .progressViewStyle(.linear)
-
-                Text("\(Int(manager.downloadProgress * 100))%")
-                    .font(.system(.body, design: .monospaced).monospacedDigit())
-                    .foregroundStyle(.secondary)
-
-                Button("Cancel") {
-                    manager.cancelDownload()
-                }
-                .buttonStyle(.bordered)
-            }
-
-            if let error = manager.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-
-                Button("Retry") {
-                    Task {
-                        manager.error = nil
-                        await manager.downloadModelIfNeeded()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-            }
+                .multilineTextAlignment(.center)
         }
         .frame(width: 320)
         .padding(24)
