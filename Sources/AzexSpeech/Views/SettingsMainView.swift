@@ -78,7 +78,7 @@ struct SettingsMainView: View {
                         Circle()
                             .fill(modelReady ? AzexTheme.success : AzexTheme.error)
                             .frame(width: 8, height: 8)
-                        Text("FireRedASR v2 CTC")
+                        Text("FireRedASR2 CTC")
                             .foregroundStyle(AzexTheme.textPrimary)
                         Spacer()
                         Text(modelReady ? "就绪" : "未下载")
@@ -217,6 +217,19 @@ struct SettingsMainView: View {
     // MARK: - Model status
 
     private func checkModelStatus() {
+        // Check bundle first (production), then app support (dev)
+        if let modelURL = Bundle.module.url(forResource: "model.int8", withExtension: "onnx") {
+            modelReady = true
+            modelPathDisplay = modelURL.deletingLastPathComponent().path
+
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: modelURL.path),
+               let size = attrs[.size] as? UInt64
+            {
+                modelSize = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+            }
+            return
+        }
+
         let base = appSupportPath.appendingPathComponent("models/asr/sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25")
         let modelFile = base.appendingPathComponent("model.int8.onnx")
         let fm = FileManager.default

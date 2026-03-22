@@ -1,10 +1,16 @@
 import Foundation
 
-/// Corrects ASR output using vocab files + local small model.
-/// Phase 1: Rule-based replacement from vocab files
-/// Phase 2: Local small LLM (MLX Qwen2.5-0.5B) for context-aware correction
+/// Corrects ASR output using vocab files + fuzzy matching.
+///
+/// Three-pass correction pipeline:
+/// 1. Exact substring match (longest key first, case-insensitive)
+/// 2. Fuzzy token match (edit distance ≤ 40% of key length, for English tokens)
+/// 3. Fuzzy multi-token match (combine consecutive tokens, match against multi-word keys)
 final class CorrectionEngine {
     private let vocabManager: VocabManager
+
+    /// Fuzzy match threshold: max edit distance ratio (0.0 = exact, 1.0 = anything matches)
+    private let fuzzyThreshold: Double = 0.45
 
     init(vocabManager: VocabManager) {
         self.vocabManager = vocabManager
@@ -12,11 +18,23 @@ final class CorrectionEngine {
 
     /// Correct ASR output text using all available vocab layers
     func correct(_ asrText: String) -> String {
-        // Phase 1: Rule-based replacement
-        var result = asrText
         let corrections = vocabManager.allCorrections()
+        guard !corrections.isEmpty else { return addPunctuation(asrText) }
 
-        // Sort by key length descending (match longer phrases first)
+        // Pass 1: Exact substring replacement (longest key first)
+        var result = exactMatch(asrText, corrections: corrections)
+
+        // Pass 2+3: Fuzzy token-level matching for remaining English words
+        result = fuzzyTokenMatch(result, corrections: corrections)
+
+        return addPunctuation(result)
+    }
+
+    // MARK: - Pass 1: Exact Match
+
+    /// Replace exact substring matches, longest key first, case-insensitive.
+    private func exactMatch(_ text: String, corrections: [String: String]) -> String {
+        var result = text
         let sortedKeys = corrections.keys.sorted { $0.count > $1.count }
 
         for key in sortedKeys {
@@ -27,30 +45,162 @@ final class CorrectionEngine {
                 options: .caseInsensitive
             )
         }
-
-        // Add punctuation if missing
-        result = addPunctuation(result)
-
         return result
     }
 
-    /// Add basic punctuation to ASR output that typically has none.
-    /// - Ensures text ends with a period (。)
-    /// - Future: mid-sentence comma insertion based on clause boundaries
+    // MARK: - Pass 2+3: Fuzzy Token Match
+
+    /// Split text into tokens, try fuzzy matching unrecognized English tokens
+    /// against vocab keys. Also tries combining consecutive tokens for multi-word terms.
+    private func fuzzyTokenMatch(_ text: String, corrections: [String: String]) -> String {
+        // Build lookup: lowercase key → (original key, replacement)
+        // Only include keys that look like English (contain ASCII letters)
+        var englishKeys: [(key: String, replacement: String)] = []
+        for (k, v) in corrections {
+            if k.contains(where: { $0.isASCII && $0.isLetter }) {
+                englishKeys.append((key: k.lowercased(), replacement: v))
+            }
+        }
+        guard !englishKeys.isEmpty else { return text }
+
+        // Sort by key length descending for multi-word priority
+        englishKeys.sort { $0.key.count > $1.key.count }
+
+        // Split into segments: Chinese text vs English tokens (separated by spaces)
+        let segments = splitSegments(text)
+        var result: [String] = []
+        var i = 0
+
+        while i < segments.count {
+            let seg = segments[i]
+
+            // Only try fuzzy match on English-looking tokens
+            if isEnglishToken(seg) {
+                // Try combining 2-3 consecutive English tokens for multi-word match
+                var matched = false
+
+                for windowSize in stride(from: min(3, segments.count - i), through: 1, by: -1) {
+                    // Collect consecutive English tokens
+                    var tokens: [String] = []
+                    var j = i
+                    while tokens.count < windowSize && j < segments.count {
+                        if isEnglishToken(segments[j]) {
+                            tokens.append(segments[j])
+                            j += 1
+                        } else if segments[j].trimmingCharacters(in: .whitespaces).isEmpty {
+                            j += 1 // skip whitespace between tokens
+                        } else {
+                            break
+                        }
+                    }
+                    guard tokens.count == windowSize else { continue }
+
+                    let combined = tokens.joined(separator: " ").lowercased()
+
+                    // Try fuzzy match against vocab keys
+                    if let match = findFuzzyMatch(combined, in: englishKeys) {
+                        result.append(match.replacement)
+                        i = j // skip all consumed segments
+                        matched = true
+                        break
+                    }
+                }
+
+                if !matched {
+                    result.append(seg)
+                    i += 1
+                }
+            } else {
+                result.append(seg)
+                i += 1
+            }
+        }
+
+        return result.joined()
+    }
+
+    /// Find best fuzzy match for a query string among vocab keys.
+    /// Returns nil if no match within threshold.
+    private func findFuzzyMatch(_ query: String, in keys: [(key: String, replacement: String)]) -> (key: String, replacement: String)? {
+        let queryLen = query.count
+        guard queryLen >= 3 else { return nil } // skip very short tokens
+
+        var bestMatch: (key: String, replacement: String)?
+        var bestScore: Double = 1.0 // lower is better (edit distance ratio)
+
+        for entry in keys {
+            let keyLen = entry.key.count
+            // Skip keys that are too different in length
+            let lenRatio = Double(abs(keyLen - queryLen)) / Double(max(keyLen, queryLen))
+            if lenRatio > 0.5 { continue }
+
+            let dist = levenshteinDistance(query, entry.key)
+            let maxLen = max(queryLen, keyLen)
+            let score = Double(dist) / Double(maxLen)
+
+            if score < bestScore && score <= fuzzyThreshold {
+                bestScore = score
+                bestMatch = entry
+            }
+        }
+
+        return bestMatch
+    }
+
+    // MARK: - Text Segmentation
+
+    /// Split text into segments preserving Chinese characters, English words, and whitespace.
+    /// e.g., "啊CLOUD COLD测试" → ["啊", "CLOUD", " ", "COLD", "测试"]
+    private func splitSegments(_ text: String) -> [String] {
+        var segments: [String] = []
+        var current = ""
+        var currentType: SegmentType = .other
+
+        for char in text {
+            let charType = segmentType(char)
+            if charType != currentType && !current.isEmpty {
+                segments.append(current)
+                current = ""
+            }
+            current.append(char)
+            currentType = charType
+        }
+        if !current.isEmpty {
+            segments.append(current)
+        }
+        return segments
+    }
+
+    private enum SegmentType {
+        case english, chinese, whitespace, other
+    }
+
+    private func segmentType(_ char: Character) -> SegmentType {
+        if char.isASCII && char.isLetter { return .english }
+        if char.isWhitespace { return .whitespace }
+        if char.unicodeScalars.first.map({ $0.value >= 0x4E00 && $0.value <= 0x9FFF }) == true { return .chinese }
+        return .other
+    }
+
+    private func isEnglishToken(_ s: String) -> Bool {
+        !s.isEmpty && s.first?.isASCII == true && s.first?.isLetter == true
+    }
+
+    // MARK: - Punctuation
+
     private func addPunctuation(_ text: String) -> String {
         var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !result.isEmpty else { return result }
 
-        // If text already ends with punctuation, leave it
         let lastChar = result.last!
         let endPunctuation: Set<Character> = ["。", "！", "？", "，", ".", "!", "?", ",", "；", ";"]
         if !endPunctuation.contains(lastChar) {
-            // Add period at end of each session
             result += "。"
         }
-
         return result
     }
+
+    // MARK: - Diff / Learning
 
     /// Extract corrections by diffing original ASR output with user-edited text
     func extractCorrections(original: String, edited: String) -> [(String, String)] {
@@ -59,13 +209,10 @@ final class CorrectionEngine {
 
         guard origWords.count > 0, editWords.count > 0 else { return [] }
 
-        // Skip if >50% words changed (full rewrite, not correction)
         let unchangedCount = origWords.filter { editWords.contains($0) }.count
         let changeRatio = 1.0 - (Double(unchangedCount) / Double(max(origWords.count, editWords.count)))
         if changeRatio > 0.5 { return [] }
 
-        // Simple substitution detection via aligned pairs
-        // TODO: Use LCS diff (reference: OpenWhispr correctionLearner.js)
         var corrections: [(String, String)] = []
         let minLen = min(origWords.count, editWords.count)
 
@@ -73,11 +220,8 @@ final class CorrectionEngine {
             if origWords[i] != editWords[i] {
                 let orig = origWords[i]
                 let edit = editWords[i]
-
-                // Skip if too short
                 guard edit.count >= 2 else { continue }
 
-                // Skip if edit distance ratio too high (unrelated words)
                 let dist = levenshteinDistance(orig, edit)
                 let maxLen = max(orig.count, edit.count)
                 if maxLen > 0 && Double(dist) / Double(maxLen) > 0.65 { continue }
@@ -85,11 +229,10 @@ final class CorrectionEngine {
                 corrections.append((orig, edit))
             }
         }
-
         return corrections
     }
 
-    // MARK: - Private
+    // MARK: - Utilities
 
     private func tokenize(_ text: String) -> [String] {
         text.components(separatedBy: .whitespacesAndNewlines)
@@ -97,7 +240,7 @@ final class CorrectionEngine {
             .filter { !$0.isEmpty }
     }
 
-    private func levenshteinDistance(_ s1: String, _ s2: String) -> Int {
+    func levenshteinDistance(_ s1: String, _ s2: String) -> Int {
         let a = Array(s1)
         let b = Array(s2)
         var dp = Array(repeating: Array(repeating: 0, count: b.count + 1), count: a.count + 1)

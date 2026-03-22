@@ -1,6 +1,6 @@
 import Foundation
 
-/// Manages the FireRedASR v2 CTC model.
+/// Manages the FireRedASR2 CTC model.
 /// Model is bundled inside the app — no download needed.
 /// Falls back to ~/Library/Application Support/ if bundle copy is missing (dev builds).
 @MainActor
@@ -31,8 +31,8 @@ final class ModelManager: ObservableObject {
     /// Check bundle first, then fall back to app support directory.
     private func resolveModelPaths() {
         // 1. Check app bundle (production: model bundled as resource)
-        if let bundledModel = Bundle.main.url(forResource: "model.int8", withExtension: "onnx"),
-           let bundledTokens = Bundle.main.url(forResource: "tokens", withExtension: "txt") {
+        if let bundledModel = Bundle.module.url(forResource: "model.int8", withExtension: "onnx"),
+           let bundledTokens = Bundle.module.url(forResource: "tokens", withExtension: "txt") {
             resolvedModelPath = bundledModel.path
             resolvedTokensPath = bundledTokens.path
             isModelReady = true

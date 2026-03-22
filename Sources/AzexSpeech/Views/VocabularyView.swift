@@ -159,6 +159,9 @@ struct VocabularyView: View {
         .padding(20)
         .background(AzexTheme.bg)
         .onAppear { loadEntries() }
+        .onReceive(NotificationCenter.default.publisher(for: .vocabDidUpdate)) { _ in
+            loadEntries()
+        }
     }
 
     @ViewBuilder
@@ -303,5 +306,6 @@ struct VocabularyView: View {
         if let data = try? encoder.encode(vocab) {
             try? data.write(to: path, options: .atomic)
         }
+        NotificationCenter.default.post(name: .vocabDidUpdate, object: nil)
     }
 }

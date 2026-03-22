@@ -1,6 +1,10 @@
 import Foundation
 
 /// Manages all vocabulary files: personal + domain + context
+extension Notification.Name {
+    static let vocabDidUpdate = Notification.Name("vocabDidUpdate")
+}
+
 final class VocabManager {
     private(set) var personalVocab: VocabFile = VocabFile()
     private(set) var domainCryptoVocab: VocabFile = VocabFile()
@@ -17,6 +21,8 @@ final class VocabManager {
     /// Load all vocab files
     func loadAll() {
         ensureAppSupportDir()
+        print("📚 VocabManager: appSupportDir = \(appSupportDir.path)")
+        print("📚 VocabManager: dir exists = \(FileManager.default.fileExists(atPath: appSupportDir.path))")
         copyBundledVocabIfNeeded()
 
         personalVocab = loadVocab(from: appSupportDir.appendingPathComponent("my-vocab.json"))
@@ -45,6 +51,8 @@ final class VocabManager {
     func learnCorrection(original: String, corrected: String) {
         personalVocab.corrections[original] = corrected
         savePersonalVocab()
+        // Notify other VocabManager instances to reload
+        NotificationCenter.default.post(name: .vocabDidUpdate, object: nil)
     }
 
     /// Update context words from active window
@@ -77,11 +85,18 @@ final class VocabManager {
     private func copyBundledVocabIfNeeded() {
         let fm = FileManager.default
 
-        for name in ["domain-ai.json", "domain-crypto.json"] {
-            let dest = appSupportDir.appendingPathComponent(name)
+        for name in ["domain-ai", "domain-crypto"] {
+            let dest = appSupportDir.appendingPathComponent("\(name).json")
             if !fm.fileExists(atPath: dest.path) {
-                if let bundled = Bundle.main.url(forResource: name, withExtension: nil) {
-                    try? fm.copyItem(at: bundled, to: dest)
+                if let bundled = Bundle.module.url(forResource: name, withExtension: "json") {
+                    do {
+                        try fm.copyItem(at: bundled, to: dest)
+                        print("📚 Copied \(name).json to app support")
+                    } catch {
+                        print("📚 Failed to copy \(name).json: \(error)")
+                    }
+                } else {
+                    print("📚 Bundle.module has no \(name).json")
                 }
             }
         }

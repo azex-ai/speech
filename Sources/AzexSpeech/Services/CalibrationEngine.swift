@@ -19,7 +19,7 @@ final class CalibrationEngine: ObservableObject, @unchecked Sendable {
         if let modelPath = ModelManager.shared.modelPath,
            let tokensPath = ModelManager.shared.tokensPath
         {
-            recognizer = SpeechRecognizer(modelPath: modelPath, tokensPath: tokensPath)
+            recognizer = SpeechRecognizer(modelPath: modelPath, tokensPath: tokensPath, hotwordsPath: nil)
         }
     }
 

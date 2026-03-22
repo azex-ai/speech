@@ -19,6 +19,8 @@ struct MainContentView: View {
                     FeedView()
                 case .calibration:
                     CalibrationView()
+                case .wordTrainer:
+                    WordTrainerView()
                 case .training:
                     PronunciationTrainerView()
                 case .settings:

@@ -2,7 +2,7 @@
 import Foundation
 
 /// Core speech recognition engine.
-/// Captures audio → recognizes via FireRedASR v2 CTC → corrects with vocab → returns text.
+/// Captures audio → recognizes via FireRedASR2 AED → corrects with vocab → returns text.
 final class SpeechEngine: @unchecked Sendable {
     private var audioEngine: AVAudioEngine?
     private var audioBuffer: RingBuffer<Float>
@@ -26,16 +26,21 @@ final class SpeechEngine: @unchecked Sendable {
     func initialize() async {
         vocabManager.loadAll()
 
+        // Reload vocab when WordTrainer saves new mappings
+        NotificationCenter.default.addObserver(forName: .vocabDidUpdate, object: nil, queue: .main) { [weak self] _ in
+            self?.vocabManager.loadAll()
+        }
+
         // Initialize ASR recognizer if model is available
         let modelPath = await ModelManager.shared.modelPath
         let tokensPath = await ModelManager.shared.tokensPath
-        let hotwordsPath = Bundle.main.url(forResource: "hotwords", withExtension: "txt")?.path
+        let hotwordsPath = Bundle.module.url(forResource: "hotwords", withExtension: "txt")?.path
         if let modelPath, let tokensPath {
             recognizer = SpeechRecognizer(modelPath: modelPath, tokensPath: tokensPath, hotwordsPath: hotwordsPath)
             if recognizer != nil {
-                print("✅ FireRedASR v2 CTC recognizer ready")
+                print("✅ FireRedASR2 CTC recognizer ready")
             } else {
-                print("⚠️ Failed to initialize FireRedASR v2 CTC recognizer")
+                print("⚠️ Failed to initialize FireRedASR2 CTC recognizer")
             }
         } else {
             print("⚠️ ASR model not downloaded yet")
@@ -80,7 +85,16 @@ final class SpeechEngine: @unchecked Sendable {
             let text: String
             if let recognized = rec?.recognize(samples: samples), !recognized.isEmpty {
                 // Post-process with correction engine (vocab replacement)
-                text = correction.correct(recognized)
+                let corrected = correction.correct(recognized)
+                // Log correction result
+                let logMsg = "📝 Correction: \"\(recognized)\" → \"\(corrected)\"\n"
+                let logPath = "/tmp/azex-asr.log"
+                if let fh = FileHandle(forWritingAtPath: logPath) {
+                    fh.seekToEndOfFile()
+                    fh.write(Data(logMsg.utf8))
+                    fh.closeFile()
+                }
+                text = corrected
             } else {
                 text = "[ASR not available — download model in Settings]"
             }
