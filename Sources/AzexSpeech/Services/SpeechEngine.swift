@@ -55,18 +55,28 @@ final class SpeechEngine: @unchecked Sendable {
         self.accumulatedSamples = []
         isRecording = true
 
-        do {
-            try audioEngine?.start()
-        } catch {
-            print("Failed to start audio engine: \(error)")
-            isRecording = false
+        // Engine stays running (started in setupAudioEngine).
+        // Audio tap always runs; isRecording controls whether samples accumulate.
+        // This eliminates startup latency so the first syllable is captured.
+        if audioEngine?.isRunning != true {
+            do {
+                try audioEngine?.start()
+            } catch {
+                print("Failed to start audio engine: \(error)")
+                isRecording = false
+            }
         }
     }
 
     func stopRecording() {
         guard isRecording else { return }
         isRecording = false
-        audioEngine?.stop()
+
+        // Don't stop the engine — keep it warm for next recording.
+        // Give the audio tap one last callback cycle to flush remaining buffers.
+        // Then add 0.1s silence padding so ASR doesn't clip the final syllable.
+        let paddingSamples = [Float](repeating: 0, count: 1600) // 0.1s at 16kHz
+        accumulatedSamples.append(contentsOf: paddingSamples)
 
         let samples = accumulatedSamples
         accumulatedSamples = []
@@ -158,7 +168,14 @@ final class SpeechEngine: @unchecked Sendable {
             }
         }
 
-        // Prepare engine (don't start yet)
+        // Start engine immediately and keep it running.
+        // The tap always fires; isRecording controls whether samples accumulate.
+        // This eliminates cold-start latency when the user presses the hotkey.
         engine.prepare()
+        do {
+            try engine.start()
+        } catch {
+            print("Failed to pre-start audio engine: \(error)")
+        }
     }
 }
