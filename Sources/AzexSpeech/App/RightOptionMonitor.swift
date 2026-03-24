@@ -8,6 +8,7 @@ final class RightOptionMonitor {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var isRightOptionDown = false
+    private var lastToggleTime: CFAbsoluteTime = 0
     private let onToggle: () -> Void
 
     init(onToggle: @escaping () -> Void) {
@@ -17,16 +18,15 @@ final class RightOptionMonitor {
     func start() {
         // Global monitor for when app is not focused
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 self?.handleFlagsChanged(event)
             }
         }
 
         // Local monitor for when app is focused
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            Task { @MainActor in
-                self?.handleFlagsChanged(event)
-            }
+            // Already on main thread — handle synchronously to prevent race with global monitor
+            self?.handleFlagsChanged(event)
             return event
         }
     }
@@ -48,8 +48,11 @@ final class RightOptionMonitor {
         let optionPressed = event.modifierFlags.contains(.option)
 
         if optionPressed && !isRightOptionDown {
-            // Key down — toggle recording
+            // Key down — toggle recording (debounce 200ms to prevent double-fire from both monitors)
+            let now = CFAbsoluteTimeGetCurrent()
+            guard now - lastToggleTime > 0.2 else { return }
             isRightOptionDown = true
+            lastToggleTime = now
             onToggle()
         } else if !optionPressed && isRightOptionDown {
             // Key up — just reset state (toggle mode, not hold mode)

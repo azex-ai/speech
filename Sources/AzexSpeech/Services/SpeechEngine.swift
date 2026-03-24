@@ -13,7 +13,9 @@ final class SpeechEngine: @unchecked Sendable {
     private var recognizer: SpeechRecognizer?
 
     /// Accumulated audio samples during recording (16kHz mono Float32, [-1, 1])
+    /// Protected by samplesLock for thread-safe access between audio tap and main thread.
     private var accumulatedSamples: [Float] = []
+    private let samplesLock = NSLock()
 
     private var onTextUpdate: (@Sendable (String) -> Void)?
 
@@ -23,12 +25,20 @@ final class SpeechEngine: @unchecked Sendable {
         self.correctionEngine = CorrectionEngine(vocabManager: vocabManager)
     }
 
+    /// Debounce timer for vocab reload notifications
+    private var vocabReloadWorkItem: DispatchWorkItem?
+
     func initialize() async {
         vocabManager.loadAll()
 
-        // Reload vocab when WordTrainer saves new mappings
+        // Reload vocab when WordTrainer saves new mappings (debounced 500ms)
         NotificationCenter.default.addObserver(forName: .vocabDidUpdate, object: nil, queue: .main) { [weak self] _ in
-            self?.vocabManager.loadAll()
+            self?.vocabReloadWorkItem?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                self?.vocabManager.loadAll()
+            }
+            self?.vocabReloadWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
         }
 
         // Initialize ASR recognizer if model is available
@@ -52,7 +62,10 @@ final class SpeechEngine: @unchecked Sendable {
     func startRecording(onUpdate: @escaping @Sendable (String) -> Void) {
         guard !isRecording else { return }
         self.onTextUpdate = onUpdate
+        samplesLock.lock()
         self.accumulatedSamples = []
+        self.accumulatedSamples.reserveCapacity(16000 * 30) // pre-alloc ~30s at 16kHz
+        samplesLock.unlock()
         isRecording = true
 
         // Engine stays running (started in setupAudioEngine).
@@ -73,13 +86,12 @@ final class SpeechEngine: @unchecked Sendable {
         isRecording = false
 
         // Don't stop the engine — keep it warm for next recording.
-        // Give the audio tap one last callback cycle to flush remaining buffers.
-        // Then add 0.1s silence padding so ASR doesn't clip the final syllable.
-        let paddingSamples = [Float](repeating: 0, count: 1600) // 0.1s at 16kHz
-        accumulatedSamples.append(contentsOf: paddingSamples)
-
+        // Safely extract accumulated samples under lock, then add silence padding.
+        samplesLock.lock()
+        accumulatedSamples.append(contentsOf: [Float](repeating: 0, count: 1600)) // 0.1s padding
         let samples = accumulatedSamples
         accumulatedSamples = []
+        samplesLock.unlock()
 
         guard !samples.isEmpty else {
             onTextUpdate?("")
@@ -89,7 +101,7 @@ final class SpeechEngine: @unchecked Sendable {
         // Run recognition on background thread to avoid blocking UI
         let rec = recognizer
         let correction = correctionEngine
-        nonisolated(unsafe) let callback = onTextUpdate
+        let callback = onTextUpdate
 
         Task.detached {
             let text: String
@@ -157,14 +169,16 @@ final class SpeechEngine: @unchecked Sendable {
                 return nil
             }
 
-            // Accumulate resampled audio during recording
+            // Accumulate resampled audio during recording (thread-safe)
             if let channelData = converted.floatChannelData {
                 let samples = Array(UnsafeBufferPointer(
                     start: channelData[0],
                     count: Int(converted.frameLength)
                 ))
                 self.audioBuffer.write(samples)
+                self.samplesLock.lock()
                 self.accumulatedSamples.append(contentsOf: samples)
+                self.samplesLock.unlock()
             }
         }
 

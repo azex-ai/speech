@@ -21,8 +21,11 @@ final class CorrectionEngine {
         let corrections = vocabManager.allCorrections()
         guard !corrections.isEmpty else { return addPunctuation(asrText) }
 
+        // Pass 0: Collapse spaced-out uppercase letters (e.g. "U S D C" → "USDC")
+        var result = collapseSpacedLetters(asrText)
+
         // Pass 1: Exact substring replacement (longest key first)
-        var result = exactMatch(asrText, corrections: corrections)
+        result = exactMatch(result, corrections: corrections)
 
         // Pass 2+3: Fuzzy token-level matching for remaining English words
         result = fuzzyTokenMatch(result, corrections: corrections)
@@ -30,20 +33,73 @@ final class CorrectionEngine {
         return addPunctuation(result)
     }
 
+    // MARK: - Pass 0: Collapse Spaced Letters
+
+    /// ASR sometimes outputs individual letters separated by spaces, e.g.
+    /// "U S D C" instead of "USDC", or "E T H" instead of "ETH".
+    /// This pass merges consecutive single ASCII letters back into words.
+    /// It also handles mixed cases like "B i t c o i n" → "Bitcoin".
+    private func collapseSpacedLetters(_ text: String) -> String {
+        // Split by spaces, find runs of single ASCII letters, merge them
+        let parts = text.components(separatedBy: " ")
+        var result: [String] = []
+        var letterRun: [String] = []
+
+        func flushLetterRun() {
+            guard !letterRun.isEmpty else { return }
+            if letterRun.count >= 2 {
+                // Strip trailing punctuation from each letter, merge, then re-append
+                // e.g. ["U","S","D","T。"] → "USDT" + "。"
+                var trailing = ""
+                let lastItem = letterRun.last!
+                let lastCore = lastItem.trimmingCharacters(in: .punctuationCharacters)
+                if lastCore.count < lastItem.count {
+                    trailing = String(lastItem.dropFirst(lastCore.count))
+                }
+                let merged = letterRun.map { $0.trimmingCharacters(in: .punctuationCharacters) }.joined()
+                result.append(merged + trailing)
+            } else {
+                result.append(letterRun[0])
+            }
+            letterRun = []
+        }
+
+        for part in parts {
+            let trimmed = part.trimmingCharacters(in: .whitespaces)
+            let core = trimmed.trimmingCharacters(in: .punctuationCharacters)
+            if core.count == 1, let ch = core.first, ch.isASCII, ch.isLetter {
+                letterRun.append(trimmed)
+            } else {
+                flushLetterRun()
+                result.append(part)
+            }
+        }
+        flushLetterRun()
+
+        return result.joined(separator: " ")
+    }
+
     // MARK: - Pass 1: Exact Match
 
     /// Replace exact substring matches, longest key first, case-insensitive.
+    /// Optimized: only scan keys that could plausibly appear in the text (length filter + early exit).
     private func exactMatch(_ text: String, corrections: [String: String]) -> String {
         var result = text
+        let textLen = result.count
         let sortedKeys = corrections.keys.sorted { $0.count > $1.count }
 
         for key in sortedKeys {
+            // Skip keys longer than the remaining text
+            guard key.count <= textLen else { continue }
             guard let replacement = corrections[key] else { continue }
-            result = result.replacingOccurrences(
-                of: key,
-                with: replacement,
-                options: .caseInsensitive
-            )
+            // Only call replacingOccurrences if the key could exist (case-insensitive range check)
+            if result.range(of: key, options: .caseInsensitive) != nil {
+                result = result.replacingOccurrences(
+                    of: key,
+                    with: replacement,
+                    options: .caseInsensitive
+                )
+            }
         }
         return result
     }
