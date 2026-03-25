@@ -54,6 +54,13 @@ final class RightOptionMonitor {
             isRightOptionDown = true
             lastToggleTime = now
             onToggle()
+        } else if optionPressed && isRightOptionDown {
+            // Key down but isRightOptionDown already true — key-up event was missed.
+            // Allow re-toggle if enough time has passed (>400ms) to avoid hold-repeat.
+            let now = CFAbsoluteTimeGetCurrent()
+            guard now - lastToggleTime > 0.4 else { return }
+            lastToggleTime = now
+            onToggle()
         } else if !optionPressed && isRightOptionDown {
             // Key up — just reset state (toggle mode, not hold mode)
             isRightOptionDown = false

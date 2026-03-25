@@ -5,6 +5,8 @@ struct SettingsMainView: View {
     @State private var selectedDomain = "both"
     @State private var autoPaste = AppSettings.autoPasteMode
     @State private var soundEnabled = AppSettings.soundEnabled
+    @State private var asrEngine = AppSettings.asrEngine
+    @State private var volcApiKey = AppSettings.volcApiKey
     @State private var modelReady = false
     @State private var modelSize: String = "—"
     @State private var modelPathDisplay: String = "—"
@@ -107,10 +109,37 @@ struct SettingsMainView: View {
 
                 sectionDivider()
 
-                // Remote model
-                settingsSection("远程模型", systemImage: "cloud") {
-                    Text("Coming Soon — 配置远程 LLM 纠正模型")
-                        .foregroundStyle(AzexTheme.textSecondary)
+                // ASR Engine
+                settingsSection("识别引擎", systemImage: "waveform") {
+                    Picker("引擎", selection: $asrEngine) {
+                        Text("本地 (FireRedASR2)").tag(AppSettings.ASREngine.local)
+                        Text("云端 (豆包 Seed-ASR)").tag(AppSettings.ASREngine.cloud)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: asrEngine) { _, newValue in
+                        AppSettings.asrEngine = newValue
+                    }
+
+                    if asrEngine == .cloud {
+                        HStack {
+                            SecureField("火山引擎 API Key", text: $volcApiKey)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: volcApiKey) { _, newValue in
+                                    AppSettings.volcApiKey = newValue
+                                }
+                            if !volcApiKey.isEmpty {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(AzexTheme.success)
+                            }
+                        }
+                        Text("从 console.volcengine.com/speech/new 获取 API Key")
+                            .font(.caption)
+                            .foregroundStyle(AzexTheme.textSecondary)
+                    } else {
+                        Text("使用本地模型离线识别，无需网络")
+                            .font(.caption)
+                            .foregroundStyle(AzexTheme.textSecondary)
+                    }
                 }
 
                 sectionDivider()

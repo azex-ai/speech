@@ -171,6 +171,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Prevents re-triggering during recognition/paste
     private var isProcessing = false
+    /// Timestamp when isProcessing was set to true, for safety timeout
+    private var processingStartTime: CFAbsoluteTime = 0
     /// Tracks when recording started for duration calculation
     private var recordingStartTime: Date?
     /// Stores the raw ASR text before correction (for history diff)
@@ -179,13 +181,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func toggleRecording() {
         guard let engine = speechEngine else { return }
 
-        // Block input during recognizing/done/error states
-        if isProcessing { return }
+        // Block input during recognizing/done/error states, but auto-unlock after 15s safety timeout
+        if isProcessing {
+            let elapsed = CFAbsoluteTimeGetCurrent() - processingStartTime
+            if elapsed < 15.0 { return }
+            // Safety timeout: recognition likely hung, force unlock
+            print("⚠️ isProcessing stuck for \(Int(elapsed))s — force unlocking")
+            isProcessing = false
+        }
 
         if engine.isRecording {
             // Second press: stop recording → recognize
             SoundEffect.playStop()
             isProcessing = true
+            processingStartTime = CFAbsoluteTimeGetCurrent()
             updateStatusIcon(recording: false)
 
             if AppSettings.autoPasteMode {

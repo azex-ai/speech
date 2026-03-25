@@ -102,13 +102,25 @@ final class SpeechEngine: @unchecked Sendable {
         let rec = recognizer
         let correction = correctionEngine
         let callback = onTextUpdate
+        let useCloud = AppSettings.asrEngine == .cloud && !AppSettings.volcApiKey.isEmpty
 
         Task.detached {
+            let recognized: String
+            if useCloud {
+                let cloudRecognizer = VolcEngineRecognizer(apiKey: AppSettings.volcApiKey)
+                recognized = await cloudRecognizer.recognize(samples: samples)
+            } else if let localResult = rec?.recognize(samples: samples), !localResult.isEmpty {
+                recognized = localResult
+            } else {
+                recognized = "[ASR not available — download model in Settings]"
+            }
+
+            // Post-process with correction engine (vocab replacement) unless it's an error
             let text: String
-            if let recognized = rec?.recognize(samples: samples), !recognized.isEmpty {
-                // Post-process with correction engine (vocab replacement)
+            if recognized.hasPrefix("[") {
+                text = recognized
+            } else {
                 let corrected = correction.correct(recognized)
-                // Log correction result
                 let logMsg = "📝 Correction: \"\(recognized)\" → \"\(corrected)\"\n"
                 let logPath = "/tmp/azex-asr.log"
                 if let fh = FileHandle(forWritingAtPath: logPath) {
@@ -117,8 +129,6 @@ final class SpeechEngine: @unchecked Sendable {
                     fh.closeFile()
                 }
                 text = corrected
-            } else {
-                text = "[ASR not available — download model in Settings]"
             }
 
             await MainActor.run {
