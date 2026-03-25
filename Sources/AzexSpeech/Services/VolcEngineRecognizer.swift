@@ -13,66 +13,75 @@ final class VolcEngineRecognizer: @unchecked Sendable {
     }
 
     /// Recognize speech from Float32 audio samples (16kHz mono).
-    /// Returns recognized text, or an error message string on failure.
+    /// Retries once on connection failure (e.g., after system wake from sleep).
     func recognize(samples: [Float]) async -> String {
         guard !samples.isEmpty else { return "" }
-
         let pcmData = float32ToPCM16(samples)
-        let connectId = UUID().uuidString
-
         let audioDuration = String(format: "%.1f", Double(samples.count) / 16000.0)
 
+        for attempt in 1...2 {
+            let result = await sendAndRecognize(pcmData: pcmData, audioDuration: audioDuration)
+            switch result {
+            case .success(let text):
+                return text
+            case .failure(let error):
+                let desc = "\(error)"
+                let isConnectionError = desc.contains("not connected")
+                    || desc.contains("Connection refused")
+                    || desc.contains("Network is unreachable")
+
+                if attempt == 1 && isConnectionError {
+                    logToFile("☁️ Connection failed, retrying in 500ms...")
+                    try? await Task.sleep(for: .milliseconds(500))
+                    continue
+                }
+
+                logToFile("☁️ Cloud ASR error (\(audioDuration)s audio): \(error)")
+                if error is CancellationError || desc.contains("cancelled") {
+                    return "[云端识别超时]"
+                }
+                return "[云端识别失败: \(error.localizedDescription)]"
+            }
+        }
+        return "[云端识别失败]"
+    }
+
+    private func sendAndRecognize(pcmData: Data, audioDuration: String) async -> Result<String, Error> {
         var request = URLRequest(url: endpoint)
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue(resourceId, forHTTPHeaderField: "X-Api-Resource-Id")
-        request.setValue(connectId, forHTTPHeaderField: "X-Api-Connect-Id")
+        request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Api-Connect-Id")
 
         let session = URLSession(configuration: .default)
         let ws = session.webSocketTask(with: request)
         ws.resume()
 
-        // Timeout: cancel WebSocket after 30s
         let timeoutTask = Task {
             try await Task.sleep(for: .seconds(30))
             ws.cancel(with: .abnormalClosure, reason: nil)
         }
-
         defer {
             timeoutTask.cancel()
             ws.cancel(with: .normalClosure, reason: nil)
         }
 
         do {
-            // 1. Send config
-            let configMsg = buildConfigMessage()
-            try await ws.send(.data(configMsg))
+            try await ws.send(.data(buildConfigMessage()))
 
-            // 2. Send audio chunks (200ms each = 6400 bytes PCM16 at 16kHz)
-            let chunkSize = 6400 // 200ms at 16kHz × 2 bytes
+            let chunkSize = 6400
             var offset = 0
-            var chunkCount = 0
-
             while offset < pcmData.count {
                 let end = min(offset + chunkSize, pcmData.count)
-                let chunk = pcmData[offset..<end]
                 let isLast = end >= pcmData.count
-                chunkCount += 1
-
-                let audioMsg = buildAudioMessage(chunk: Data(chunk), isLast: isLast)
-                try await ws.send(.data(audioMsg))
+                try await ws.send(.data(buildAudioMessage(chunk: Data(pcmData[offset..<end]), isLast: isLast)))
                 offset = end
             }
-            // 3. Wait for final result
+
             let text = try await waitForResult(ws: ws)
             logToFile("☁️ Cloud ASR: \(audioDuration)s audio → \"\(text.prefix(80))\"")
-            return text
-
+            return .success(text)
         } catch {
-            logToFile("☁️ Cloud ASR error (\(audioDuration)s audio): \(error)")
-            if error is CancellationError || "\(error)".contains("cancelled") {
-                return "[云端识别超时]"
-            }
-            return "[云端识别失败: \(error.localizedDescription)]"
+            return .failure(error)
         }
     }
 
