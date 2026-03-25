@@ -177,6 +177,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var recordingStartTime: Date?
     /// Stores the raw ASR text before correction (for history diff)
     private var lastRawASRText: String?
+    /// Auto-stop timer to prevent runaway recordings
+    private var recordingTimeoutTask: Task<Void, Never>?
 
     private func toggleRecording() {
         guard let engine = speechEngine else { return }
@@ -192,6 +194,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if engine.isRecording {
             // Second press: stop recording → recognize
+            recordingTimeoutTask?.cancel()
+            recordingTimeoutTask = nil
             SoundEffect.playStop()
             isProcessing = true
             processingStartTime = CFAbsoluteTimeGetCurrent()
@@ -211,6 +215,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SoundEffect.playStart()
             recordingStartTime = Date()
             updateStatusIcon(recording: true)
+
+            // Safety: auto-stop after 60s to prevent runaway recordings
+            recordingTimeoutTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(60))
+                guard let self, self.speechEngine?.isRecording == true else { return }
+                self.toggleRecording()
+            }
 
             if AppSettings.autoPasteMode {
                 if recordingIndicator == nil { recordingIndicator = RecordingIndicator() }
