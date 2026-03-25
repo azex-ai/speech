@@ -40,16 +40,23 @@ final class RightOptionMonitor {
         // Only respond to RIGHT Option key (keyCode 61 = kVK_RightOption)
         guard event.keyCode == UInt16(kVK_RightOption) else { return }
 
+        let optionPressed = event.modifierFlags.contains(.option)
+
         // Only respond to key-down (option flag present), ignore key-up
-        guard event.modifierFlags.contains(.option) else { return }
+        guard optionPressed else { return }
 
         // Debounce 300ms — prevents double-fire from global+local monitors.
-        // flagsChanged only fires once per press (not while held), so no
-        // key-up tracking needed. This eliminates the "missed key-up" bug
-        // that caused the second press to be ignored after idle/sleep.
         let now = CFAbsoluteTimeGetCurrent()
-        guard now - lastToggleTime > 0.3 else { return }
+        let elapsed = now - lastToggleTime
+        guard elapsed > 0.3 else { return }
         lastToggleTime = now
+
+        // Diagnostic log (file-based, survives idle/sleep)
+        let msg = "⌥ toggle elapsed=\(String(format: "%.1f", elapsed))s\n"
+        if let fh = FileHandle(forWritingAtPath: "/tmp/azex-asr.log") {
+            fh.seekToEndOfFile(); fh.write(Data(msg.utf8)); fh.closeFile()
+        }
+
         onToggle()
     }
 }
